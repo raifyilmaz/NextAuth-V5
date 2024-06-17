@@ -2,6 +2,7 @@
 
 import * as z from 'zod'
 
+import { startTransition, useState, useTransition } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -19,8 +20,12 @@ import {
 import { CardWrapper } from "@/components/auth/card-wrapper";
 import { FormError } from '@/components/form-error';
 import { FormSuccess } from '@/components/form-success';
+import { login } from '@/actions/login';
 
 const LoginForm = () => {
+  const [error, setError] = useState<string | undefined>('');
+  const [success, setSuccess] = useState<string | undefined>('');
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),   
@@ -31,7 +36,16 @@ const LoginForm = () => {
   })
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
-    console.log(values);
+    setError('');
+    setSuccess('');
+    
+    startTransition(() => {
+      login(values)
+        .then((data) => {
+          setError(data.error);
+          setSuccess(data.success);
+        })
+    });
   }
 
   return (
@@ -55,6 +69,7 @@ const LoginForm = () => {
                   <FormControl>
                     <Input
                       {...field}
+                      disabled={isPending}
                       placeholder='john.doe@example.com'
                       type='email'
                     />
@@ -71,6 +86,7 @@ const LoginForm = () => {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
+                      disabled={isPending}
                       {...field}
                       placeholder='******'
                       type='password'
@@ -81,8 +97,8 @@ const LoginForm = () => {
               )}
             />
           </div>
-          <FormError message="" /> {/*Invalid credentials!*/}
-          <FormSuccess message="" /> {/* Email sent! */}
+          <FormError message={error} /> {/*Invalid credentials!*/}
+          <FormSuccess message={success} /> {/* Email sent! */}
           <Button
             type='submit'
             className='w-full'
